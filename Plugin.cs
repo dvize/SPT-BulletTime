@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Networking;
 
 
 namespace dvize.BulletTime
@@ -30,8 +31,9 @@ namespace dvize.BulletTime
         public float BulletTimeElapsedSecond = 0f;
         public bool startBulletTime = false;
         public bool firstTimeTriggered = false;
-
-        internal void Awake()
+        private static AudioClip EnterBulletAudioClip;
+        private static AudioClip ExitBulletAudioClip;
+        async void Awake()
         {
             PluginEnabled = Config.Bind(
                 "Main Settings",
@@ -62,6 +64,43 @@ namespace dvize.BulletTime
                 "Use Bullet Time", 
                 new KeyboardShortcut(KeyCode.Mouse4),
                 "Key for Bullet Time toggle");
+
+            string uri = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\enterbullet.ogg");
+            string uri2 = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\exitbullet.ogg");
+
+            using (UnityWebRequest web = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.OGGVORBIS))
+            {
+                var asyncOperation = web.SendWebRequest();
+
+                while (!asyncOperation.isDone)
+                    await Task.Yield();
+
+                if (!web.isNetworkError && !web.isHttpError)
+                {
+                    EnterBulletAudioClip = DownloadHandlerAudioClip.GetContent(web);
+                }
+                else
+                {
+                    Debug.LogError($"Can't load audio at path: '{uri}', error: {web.error}");
+                }
+            }
+
+            using (UnityWebRequest web = UnityWebRequestMultimedia.GetAudioClip(uri2, AudioType.OGGVORBIS))
+            {
+                var asyncOperation = web.SendWebRequest();
+
+                while (!asyncOperation.isDone)
+                    await Task.Yield();
+
+                if (!web.isNetworkError && !web.isHttpError)
+                {
+                    ExitBulletAudioClip = DownloadHandlerAudioClip.GetContent(web);
+                }
+                else
+                {
+                    Debug.LogError($"Can't load audio at path: '{uri}', error: {web.error}");
+                }
+            }
         }
 
         private void Update()
@@ -85,6 +124,7 @@ namespace dvize.BulletTime
                         //Logger.LogInfo("BulletTime: First Key Press - Activate Bullet Time");
                         firstTimeTriggered = true;
                         startBulletTime = true;
+                        Singleton<GUISounds>.Instance.PlaySound(Plugin.EnterBulletAudioClip);
                     }
                     else if (firstTimeTriggered)
                     {
@@ -94,6 +134,7 @@ namespace dvize.BulletTime
                         BulletTimeElapsedSecond = 0f;
                         CoolDownElapsedSecond = 0f;
                         Time.timeScale = 1.0f;
+                        Singleton<GUISounds>.Instance.PlaySound(Plugin.ExitBulletAudioClip);
                     }
                 }
 
@@ -122,6 +163,7 @@ namespace dvize.BulletTime
                         CoolDownElapsedSecond = 0f;
                         startBulletTime = false;
                         firstTimeTriggered = false; //reset key incase stamina runs out
+                        Singleton<GUISounds>.Instance.PlaySound(Plugin.ExitBulletAudioClip);
                     }
                 }
 
