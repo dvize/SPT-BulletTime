@@ -18,7 +18,7 @@ using UnityEngine.Networking;
 
 namespace dvize.BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.0.0")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.1.0")]
 
     public class Plugin : BaseUnityPlugin
     {
