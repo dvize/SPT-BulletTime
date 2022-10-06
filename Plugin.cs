@@ -47,15 +47,15 @@ namespace dvize.BulletTime
 
             MaxBulletTimeSeconds = Config.Bind(
                 "Main Settings",
-                "Set the Maximum Bullet Time per Session",
+                "Maximum Bullet Time (in Seconds)",
                 10,
-                "Set how much your stamina drains per second. No bullet time if no stamina");
+                "Set how long the bullet time can last max before cooldown");
 
             CooldownPeriodSeconds = Config.Bind(
                 "Main Settings",
-                "Set the cooldown period before being able to trigger Bullet Time",
+                "Cooldown (in Seconds)",
                 120,
-                "Set how much your stamina drains per second. No bullet time if no stamina");
+                "Set the cooldown period before being able to trigger Bullet Time");
 
             KeyBulletTime = Config.Bind(
                 "Hotkey for Bullet Time", 
