@@ -1,26 +1,28 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
+using Bsg.GameSettings;
 using Comfort.Common;
 using EFT;
 using EFT.UI;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using static EFT.Profile.GClass1658;
 
-namespace dvize.BulletTime
+namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.3.0")]
-
-    public class Plugin : BaseUnityPlugin
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.4.0")]
+    
+    public class BulletTime : BaseUnityPlugin
     {
-        private static ConfigEntry<bool> PluginEnabled;
-        private static ConfigEntry<float> BulletTimeScale;
-        private static ConfigEntry<int> MaxBulletTimeSeconds;
-        private static ConfigEntry<int> CooldownPeriodSeconds;
-        private static ConfigEntry<KeyboardShortcut> KeyBulletTime;
-        private static AudioClip EnterBulletAudioClip;
-        private static AudioClip ExitBulletAudioClip;
-        private async void Awake()
+        public static ConfigEntry<bool> PluginEnabled { get; set; }
+        public static ConfigEntry<float> BulletTimeScale { get; set; }
+        public static ConfigEntry<float> BulletTimeStaminaBurnRatePerSecond { get; set; }
+        public static ConfigEntry<KeyboardShortcut> KeyBulletTime { get; set; }
+        
+        public static AudioClip EnterBulletAudioClip;
+        public static AudioClip ExitBulletAudioClip;
+        public async void Awake()
         {
             PluginEnabled = Config.Bind(
                 "Main Settings",
@@ -34,17 +36,11 @@ namespace dvize.BulletTime
                 0.40f,
                 "Set how slow the Bullet Time Scale goes to");
 
-            MaxBulletTimeSeconds = Config.Bind(
+            BulletTimeStaminaBurnRatePerSecond = Config.Bind(
                 "Main Settings",
-                "Maximum Bullet Time (in Seconds)",
-                10,
-                "Set how long the bullet time can last max before cooldown.");
-
-            CooldownPeriodSeconds = Config.Bind(
-                "Main Settings",
-                "Cooldown (in Seconds)",
-                120,
-                "Set the cooldown period before being able to trigger Bullet Time.");
+                "Bullet Time Stamina Burn Rate Per Second",
+                140.0f,
+                "How fast stamina burns");
 
             KeyBulletTime = Config.Bind(
                 "Main Settings",
@@ -56,128 +52,103 @@ namespace dvize.BulletTime
             string uri = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\enterbullet.ogg");
             string uri2 = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\exitbullet.ogg");
 
-            using (UnityWebRequest web = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.OGGVORBIS))
-            {
-                var asyncOperation = web.SendWebRequest();
-
-                while (!asyncOperation.isDone)
-                    await Task.Yield();
-
-                if (!web.isNetworkError && !web.isHttpError)
-                {
-                    EnterBulletAudioClip = DownloadHandlerAudioClip.GetContent(web);
-                }
-                else
-                {
-                    Debug.LogError($"Can't load audio at path: '{uri}', error: {web.error}");
-                }
-            }
-
-            using (UnityWebRequest web = UnityWebRequestMultimedia.GetAudioClip(uri2, AudioType.OGGVORBIS))
-            {
-                var asyncOperation = web.SendWebRequest();
-
-                while (!asyncOperation.isDone)
-                    await Task.Yield();
-
-                if (!web.isNetworkError && !web.isHttpError)
-                {
-                    ExitBulletAudioClip = DownloadHandlerAudioClip.GetContent(web);
-                }
-                else
-                {
-                    Debug.LogError($"Can't load audio at path: '{uri}', error: {web.error}");
-                }
-            }
+            EnterBulletAudioClip = await LoadAudioClip(uri);
+            ExitBulletAudioClip = await LoadAudioClip(uri2);
 
         }
 
-        private float CoolDownElapsedSecond = 0f;
-        private float BulletTimeElapsedSecond = 0f;
-        private bool startBulletTime = false;
-        private bool firstTimeTriggered = false;
-        private void Update()
+
+        float staminaBurn = 0;
+        bool startBulletTime = false;
+        bool firstTimeTriggered = false;
+        Player player;
+        public void Update()
         {
-            if (Plugin.PluginEnabled.Value)
+            if (!BulletTime.PluginEnabled.Value)
             {
-                if (!Singleton<GameWorld>.Instantiated)
+                return;
+            }
+
+            if (!Singleton<GameWorld>.Instantiated || Camera.main == null)
+            {
+                return;
+            }
+
+            try
+            {
+                player = Singleton<GameWorld>.Instance.MainPlayer;
+
+                if (BulletTime.KeyBulletTime.Value.IsDown())
                 {
-                    return;
-                }
-
-                if (Camera.main == null)
-                {
-                    return;
-                }
-
-                CoolDownElapsedSecond += Time.unscaledDeltaTime;
-
-                try
-                {
-                    Player player = Singleton<GameWorld>.Instance.AllPlayers[0];
-
-
-                    if (Plugin.KeyBulletTime.Value.IsDown())
+                    //if key is down and bullet time is not active, activate it
+                    if (!firstTimeTriggered && !startBulletTime)
                     {
-                        if (!firstTimeTriggered)
-                        {
-                            //Debug.Log("BulletTime: First Key Press - Activate Bullet Time");
-                            firstTimeTriggered = true;
-                            startBulletTime = true;
-                            Singleton<GUISounds>.Instance.PlaySound(Plugin.EnterBulletAudioClip);
-                            Time.timeScale = Plugin.BulletTimeScale.Value;
-                            if (player)
-                            {
-                                setRecoil(player);
-                            }
+                        Logger.LogInfo("Starting Bullet Time");
+                        startBulletTime = true;
+                        Singleton<GUISounds>.Instance.PlaySound(BulletTime.EnterBulletAudioClip);
+                        Time.timeScale = BulletTime.BulletTimeScale.Value;
+                        firstTimeTriggered = true;
 
-                        }
-                        else if (firstTimeTriggered)
-                        {
-                            //Debug.Log("BulletTime: Second Key Press - Deactivate Bullet Time");
-                            startBulletTime = false;
-                            firstTimeTriggered = false;
-                            BulletTimeElapsedSecond = 0f;
-                            CoolDownElapsedSecond = 0f;
-                            Singleton<GUISounds>.Instance.PlaySound(Plugin.ExitBulletAudioClip);
-                            Time.timeScale = 1.0f;
-                            undoRecoil(player);
-
-                        }
+                        setRecoil(player);
                     }
-
-                    if (startBulletTime)
+                    else if (firstTimeTriggered && startBulletTime)
                     {
+                        Logger.LogInfo("Ending Bullet Time Early by Keypress");
+                        startBulletTime = false;
+                        Singleton<GUISounds>.Instance.PlaySound(BulletTime.ExitBulletAudioClip);
+                        Time.timeScale = 1.0f;
+                        firstTimeTriggered = false;
 
-                        if (CoolDownElapsedSecond >= Plugin.CooldownPeriodSeconds.Value)
-                        {
-                            Time.timeScale = Plugin.BulletTimeScale.Value;
-                            BulletTimeElapsedSecond += Time.unscaledDeltaTime;
-                            setRecoil(player);
-                        }
+                        setRecoil(player);
 
-                        if (BulletTimeElapsedSecond >= Plugin.MaxBulletTimeSeconds.Value)
-                        {
-                            //Logger.LogInfo("BulletTime: Stamina Ran Out");
-                            Time.timeScale = 1.0f;
-                            BulletTimeElapsedSecond = 0f;
-                            CoolDownElapsedSecond = 0f;
-                            startBulletTime = false;
-                            firstTimeTriggered = false;
-                            Singleton<GUISounds>.Instance.PlaySound(Plugin.ExitBulletAudioClip);
-                            undoRecoil(player);
-                        }
                     }
                 }
-                catch
+               
+                //in update loop, if we are in bullet time and the firsttimetriggered is true, then do stuff
+                if (startBulletTime)
                 {
-                    return;
+                    try
+                    {
+
+                        //determine rate at which stamina burns based on BulletTime.BulletTimeStaminaBurnRatePerSecond.Value and Time.deltaTime
+                        staminaBurn = BulletTime.BulletTimeStaminaBurnRatePerSecond.Value * Time.unscaledDeltaTime;
+                        //Logger.LogInfo("StaminaCurrent: " + player.Physical.Stamina.Current);
+                        player.Physical.Stamina.UpdateStamina((player.Physical.Stamina.Current - staminaBurn));
+                    }
+                    catch
+                    {
+                        Logger.LogError("Unable to Update Stamina.");
+                    }
+
+                    if (player.Physical.Stamina.Current <= 0f)
+                    {
+                        // player has no stamina left, exit bullet time with default values
+
+                        //Logger.LogInfo("Ending Bullet Time Out of Stamina");
+
+                        
+                        Time.timeScale = 1.0f;
+                        startBulletTime = false;
+                        firstTimeTriggered = false;
+                        Singleton<GUISounds>.Instance.PlaySound(BulletTime.ExitBulletAudioClip);
+                        setRecoil(player);
+                    }
+
+                    //Does timescale have to come at the end?  why is it not even executing the loginfo statment.
+                    Time.timeScale = BulletTime.BulletTimeScale.Value;
+
                 }
-                
+            }
+            catch
+            {
+                Debug.Log("Something is broken");
+                return;
             }
         }
 
-        private void setRecoil(Player player)
+
+
+        public void setRecoil(Player player)
         {
             try
             {
@@ -192,18 +163,28 @@ namespace dvize.BulletTime
             }
         }
 
-        private void undoRecoil(Player player)
+
+        public async Task<AudioClip> LoadAudioClip(string uri)
         {
-            try
+            using (UnityWebRequest web = UnityWebRequestMultimedia.GetAudioClip(uri, AudioType.OGGVORBIS))
             {
+                var asyncOperation = web.SendWebRequest();
 
-                player.ProceduralWeaponAnimation.HandsContainer.Recoil.FixedUpdate(Time.deltaTime);
-            }
-            catch
-            {
-                Debug.Log("Failed resetting original FixedUpdate");
-            }
+                while (!asyncOperation.isDone)
+                    await Task.Yield();
 
+                if (!web.isNetworkError && !web.isHttpError)
+                {
+                    return DownloadHandlerAudioClip.GetContent(web);
+                }
+                else
+                {
+                    Debug.LogError($"Can't load audio at path: '{uri}', error: {web.error}");
+                    return null;
+                }
+            }
         }
+
     }
+
 }
