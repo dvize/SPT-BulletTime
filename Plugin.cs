@@ -11,7 +11,7 @@ using static EFT.Profile.GClass1658;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.4.0")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.4.1")]
     
     public class BulletTime : BaseUnityPlugin
     {
@@ -39,7 +39,7 @@ namespace BulletTime
             BulletTimeStaminaBurnRatePerSecond = Config.Bind(
                 "Main Settings",
                 "Bullet Time Stamina Burn Rate Per Second",
-                140.0f,
+                55.0f,
                 "How fast stamina burns");
 
             KeyBulletTime = Config.Bind(
@@ -120,7 +120,8 @@ namespace BulletTime
                         Logger.LogError("Unable to Update Stamina.");
                     }
 
-                    if (player.Physical.Stamina.Current <= 0f)
+                    //no point in checking the stamina since player will have to trigger it off.
+                    /*if (player.Physical.Stamina.Current <= 0f)
                     {
                         // player has no stamina left, exit bullet time with default values
 
@@ -135,7 +136,7 @@ namespace BulletTime
                     }
 
                     //Does timescale have to come at the end?  why is it not even executing the loginfo statment.
-                    Time.timeScale = BulletTime.BulletTimeScale.Value;
+                    Time.timeScale = BulletTime.BulletTimeScale.Value;*/
 
                 }
             }
