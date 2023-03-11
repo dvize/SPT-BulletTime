@@ -7,11 +7,10 @@ using EFT.UI;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
-using static EFT.Profile.GClass1658;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.4.1")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.4.2")]
     
     public class BulletTime : BaseUnityPlugin
     {
