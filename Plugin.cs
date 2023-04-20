@@ -1,16 +1,18 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-using Bsg.GameSettings;
 using Comfort.Common;
 using EFT;
 using EFT.UI;
+using System.Diagnostics;
+using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using VersionChecker;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.4.2")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.5.0")]
     
     public class BulletTime : BaseUnityPlugin
     {
@@ -47,6 +49,7 @@ namespace BulletTime
                 new KeyboardShortcut(KeyCode.Mouse4),
                 "Key for Bullet Time toggle");
 
+            CheckEftVersion();
 
             string uri = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\enterbullet.ogg");
             string uri2 = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\exitbullet.ogg");
@@ -82,7 +85,7 @@ namespace BulletTime
                     //if key is down and bullet time is not active, activate it
                     if (!firstTimeTriggered && !startBulletTime)
                     {
-                        Logger.LogInfo("Starting Bullet Time");
+                        //Logger.LogInfo("Starting Bullet Time");
                         startBulletTime = true;
                         Singleton<GUISounds>.Instance.PlaySound(BulletTime.EnterBulletAudioClip);
                         Time.timeScale = BulletTime.BulletTimeScale.Value;
@@ -92,7 +95,7 @@ namespace BulletTime
                     }
                     else if (firstTimeTriggered && startBulletTime)
                     {
-                        Logger.LogInfo("Ending Bullet Time Early by Keypress");
+                        //Logger.LogInfo("Ending Bullet Time Early by Keypress");
                         startBulletTime = false;
                         Singleton<GUISounds>.Instance.PlaySound(BulletTime.ExitBulletAudioClip);
                         Time.timeScale = 1.0f;
@@ -108,42 +111,19 @@ namespace BulletTime
                 {
                     try
                     {
-
                         //determine rate at which stamina burns based on BulletTime.BulletTimeStaminaBurnRatePerSecond.Value and Time.deltaTime
                         staminaBurn = BulletTime.BulletTimeStaminaBurnRatePerSecond.Value * Time.unscaledDeltaTime;
                         //Logger.LogInfo("StaminaCurrent: " + player.Physical.Stamina.Current);
-                        player.Physical.Stamina.UpdateStamina((player.Physical.Stamina.Current - staminaBurn));
+                        player.Physical.Stamina.Current -= staminaBurn;
                     }
                     catch
                     {
                         Logger.LogError("Unable to Update Stamina.");
                     }
-
-                    //no point in checking the stamina since player will have to trigger it off.
-                    /*if (player.Physical.Stamina.Current <= 0f)
-                    {
-                        // player has no stamina left, exit bullet time with default values
-
-                        //Logger.LogInfo("Ending Bullet Time Out of Stamina");
-
-                        
-                        Time.timeScale = 1.0f;
-                        startBulletTime = false;
-                        firstTimeTriggered = false;
-                        Singleton<GUISounds>.Instance.PlaySound(BulletTime.ExitBulletAudioClip);
-                        setRecoil(player);
-                    }
-
-                    //Does timescale have to come at the end?  why is it not even executing the loginfo statment.
-                    Time.timeScale = BulletTime.BulletTimeScale.Value;*/
-
                 }
             }
             catch
-            {
-                Debug.Log("Something is broken");
-                return;
-            }
+            {}
         }
 
 
@@ -158,9 +138,7 @@ namespace BulletTime
                 //Logger.LogInfo("Set the FixedUpdate of Recoil to: " + Time.deltaTime);
             }
             catch
-            {
-                Debug.Log("Failed getting Playerspring and setting FixedUpdate");
-            }
+            {}
         }
 
 
@@ -179,9 +157,22 @@ namespace BulletTime
                 }
                 else
                 {
-                    Debug.LogError($"Can't load audio at path: '{uri}', error: {web.error}");
+                    UnityEngine.Debug.LogError($"Can't load audio at path: '{uri}', error: {web.error}");
                     return null;
                 }
+            }
+        }
+
+        private void CheckEftVersion()
+        {
+            // Make sure the version of EFT being run is the correct version
+            int currentVersion = FileVersionInfo.GetVersionInfo(BepInEx.Paths.ExecutablePath).FilePrivatePart;
+            int buildVersion = TarkovVersion.BuildVersion;
+            if (currentVersion != buildVersion)
+            {
+                Logger.LogError($"ERROR: This version of {Info.Metadata.Name} v{Info.Metadata.Version} was built for Tarkov {buildVersion}, but you are running {currentVersion}. Please download the correct plugin version.");
+                EFT.UI.ConsoleScreen.LogError($"ERROR: This version of {Info.Metadata.Name} v{Info.Metadata.Version} was built for Tarkov {buildVersion}, but you are running {currentVersion}. Please download the correct plugin version.");
+                throw new Exception($"Invalid EFT Version ({currentVersion} != {buildVersion})");
             }
         }
 
