@@ -12,8 +12,8 @@ using VersionChecker;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.5.0")]
-    
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.5.2")]
+    [BepInDependency("com.spt-aki.core", "3.6.0")]
     public class BulletTime : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PluginEnabled { get; set; }
@@ -109,17 +109,11 @@ namespace BulletTime
                 //in update loop, if we are in bullet time and the firsttimetriggered is true, then do stuff
                 if (startBulletTime)
                 {
-                    try
-                    {
-                        //determine rate at which stamina burns based on BulletTime.BulletTimeStaminaBurnRatePerSecond.Value and Time.deltaTime
-                        staminaBurn = BulletTime.BulletTimeStaminaBurnRatePerSecond.Value * Time.unscaledDeltaTime;
-                        //Logger.LogInfo("StaminaCurrent: " + player.Physical.Stamina.Current);
-                        player.Physical.Stamina.Current -= staminaBurn;
-                    }
-                    catch
-                    {
-                        Logger.LogError("Unable to Update Stamina.");
-                    }
+                    //determine rate at which stamina burns based on BulletTime.BulletTimeStaminaBurnRatePerSecond.Value and Time.deltaTime
+                    staminaBurn = BulletTime.BulletTimeStaminaBurnRatePerSecond.Value * Time.unscaledDeltaTime;
+                    //Logger.LogInfo("StaminaCurrent: " + player.Physical.Stamina.Current);
+                    player.Physical.Stamina.Current -= staminaBurn;
+
                 }
             }
             catch
