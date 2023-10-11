@@ -1,26 +1,37 @@
-﻿using BepInEx;
+﻿using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using BepInEx;
 using BepInEx.Configuration;
 using Comfort.Common;
 using EFT;
 using EFT.UI;
-using System.Diagnostics;
-using System;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 using VersionChecker;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.5.2")]
-    [BepInDependency("com.spt-aki.core", "3.6.0")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.6.0")]
     public class BulletTime : BaseUnityPlugin
     {
-        public static ConfigEntry<bool> PluginEnabled { get; set; }
-        public static ConfigEntry<float> BulletTimeScale { get; set; }
-        public static ConfigEntry<float> BulletTimeStaminaBurnRatePerSecond { get; set; }
-        public static ConfigEntry<KeyboardShortcut> KeyBulletTime { get; set; }
-        
+        public static ConfigEntry<bool> PluginEnabled
+        {
+            get; set;
+        }
+        public static ConfigEntry<float> BulletTimeScale
+        {
+            get; set;
+        }
+        public static ConfigEntry<float> BulletTimeStaminaBurnRatePerSecond
+        {
+            get; set;
+        }
+        public static ConfigEntry<KeyboardShortcut> KeyBulletTime
+        {
+            get; set;
+        }
+
         public static AudioClip EnterBulletAudioClip;
         public static AudioClip ExitBulletAudioClip;
         public async void Awake()
@@ -105,7 +116,7 @@ namespace BulletTime
 
                     }
                 }
-               
+
                 //in update loop, if we are in bullet time and the firsttimetriggered is true, then do stuff
                 if (startBulletTime)
                 {
@@ -117,10 +128,9 @@ namespace BulletTime
                 }
             }
             catch
-            {}
+            {
+            }
         }
-
-
 
         public void setRecoil(Player player)
         {
@@ -132,9 +142,9 @@ namespace BulletTime
                 //Logger.LogInfo("Set the FixedUpdate of Recoil to: " + Time.deltaTime);
             }
             catch
-            {}
+            {
+            }
         }
-
 
         public async Task<AudioClip> LoadAudioClip(string uri)
         {
