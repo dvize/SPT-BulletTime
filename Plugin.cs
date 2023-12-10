@@ -1,18 +1,17 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Reflection;
 using System.Threading.Tasks;
+using Aki.Reflection.Patching;
 using BepInEx;
 using BepInEx.Configuration;
-using Comfort.Common;
 using EFT;
-using EFT.UI;
 using UnityEngine;
 using UnityEngine.Networking;
-using VersionChecker;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.6.0")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.6.2")]
+
     public class BulletTime : BaseUnityPlugin
     {
         public static ConfigEntry<bool> PluginEnabled
@@ -23,7 +22,7 @@ namespace BulletTime
         {
             get; set;
         }
-        public static ConfigEntry<float> BulletTimeStaminaBurnRatePerSecond
+        public static ConfigEntry<float> StaminaBurnRatePerSecond
         {
             get; set;
         }
@@ -48,10 +47,10 @@ namespace BulletTime
                 0.40f,
                 "Set how slow the Bullet Time Scale goes to");
 
-            BulletTimeStaminaBurnRatePerSecond = Config.Bind(
+            StaminaBurnRatePerSecond = Config.Bind(
                 "Main Settings",
                 "Bullet Time Stamina Burn Rate Per Second",
-                55.0f,
+                8f,
                 "How fast stamina burns");
 
             KeyBulletTime = Config.Bind(
@@ -60,90 +59,13 @@ namespace BulletTime
                 new KeyboardShortcut(KeyCode.Mouse4),
                 "Key for Bullet Time toggle");
 
-            CheckEftVersion();
-
             string uri = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\enterbullet.ogg");
             string uri2 = "file://" + (BepInEx.Paths.PluginPath + "\\dvize.BulletTime\\exitbullet.ogg");
 
             EnterBulletAudioClip = await LoadAudioClip(uri);
             ExitBulletAudioClip = await LoadAudioClip(uri2);
 
-        }
-
-
-        float staminaBurn = 0;
-        bool startBulletTime = false;
-        bool firstTimeTriggered = false;
-        Player player;
-        public void Update()
-        {
-            if (!BulletTime.PluginEnabled.Value)
-            {
-                return;
-            }
-
-            if (!Singleton<GameWorld>.Instantiated || Camera.main == null)
-            {
-                return;
-            }
-
-            try
-            {
-                player = Singleton<GameWorld>.Instance.MainPlayer;
-
-                if (BulletTime.KeyBulletTime.Value.IsDown())
-                {
-                    //if key is down and bullet time is not active, activate it
-                    if (!firstTimeTriggered && !startBulletTime)
-                    {
-                        //Logger.LogInfo("Starting Bullet Time");
-                        startBulletTime = true;
-                        Singleton<GUISounds>.Instance.PlaySound(BulletTime.EnterBulletAudioClip);
-                        Time.timeScale = BulletTime.BulletTimeScale.Value;
-                        firstTimeTriggered = true;
-
-                        setRecoil(player);
-                    }
-                    else if (firstTimeTriggered && startBulletTime)
-                    {
-                        //Logger.LogInfo("Ending Bullet Time Early by Keypress");
-                        startBulletTime = false;
-                        Singleton<GUISounds>.Instance.PlaySound(BulletTime.ExitBulletAudioClip);
-                        Time.timeScale = 1.0f;
-                        firstTimeTriggered = false;
-
-                        setRecoil(player);
-
-                    }
-                }
-
-                //in update loop, if we are in bullet time and the firsttimetriggered is true, then do stuff
-                if (startBulletTime)
-                {
-                    //determine rate at which stamina burns based on BulletTime.BulletTimeStaminaBurnRatePerSecond.Value and Time.deltaTime
-                    staminaBurn = BulletTime.BulletTimeStaminaBurnRatePerSecond.Value * Time.unscaledDeltaTime;
-                    //Logger.LogInfo("StaminaCurrent: " + player.Physical.Stamina.Current);
-                    player.Physical.Stamina.Current -= staminaBurn;
-
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        public void setRecoil(Player player)
-        {
-            try
-            {
-                //Logger.LogInfo("Original FixedUpdate Time: " + Time.deltaTime);
-                player.ProceduralWeaponAnimation.HandsContainer.Recoil.FixedUpdate(Time.deltaTime);
-
-                //Logger.LogInfo("Set the FixedUpdate of Recoil to: " + Time.deltaTime);
-            }
-            catch
-            {
-            }
+            new NewGamePatch().Enable();
         }
 
         public async Task<AudioClip> LoadAudioClip(string uri)
@@ -167,19 +89,18 @@ namespace BulletTime
             }
         }
 
-        private void CheckEftVersion()
-        {
-            // Make sure the version of EFT being run is the correct version
-            int currentVersion = FileVersionInfo.GetVersionInfo(BepInEx.Paths.ExecutablePath).FilePrivatePart;
-            int buildVersion = TarkovVersion.BuildVersion;
-            if (currentVersion != buildVersion)
-            {
-                Logger.LogError($"ERROR: This version of {Info.Metadata.Name} v{Info.Metadata.Version} was built for Tarkov {buildVersion}, but you are running {currentVersion}. Please download the correct plugin version.");
-                EFT.UI.ConsoleScreen.LogError($"ERROR: This version of {Info.Metadata.Name} v{Info.Metadata.Version} was built for Tarkov {buildVersion}, but you are running {currentVersion}. Please download the correct plugin version.");
-                throw new Exception($"Invalid EFT Version ({currentVersion} != {buildVersion})");
-            }
-        }
-
     }
 
+    internal class NewGamePatch : ModulePatch
+    {
+        protected override MethodBase GetTargetMethod() => typeof(GameWorld).GetMethod(nameof(GameWorld.OnGameStarted));
+
+        [PatchPrefix]
+        private static void PatchPrefix()
+        {
+            BulletTimeComponent.Enable();
+        }
+    }
+
+    
 }
