@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
+using BepInEx.Configuration;
+using BepInEx;
 using BepInEx.Logging;
 using Comfort.Common;
 using EFT;
 using EFT.UI;
 using UnityEngine;
+using System.Linq;
 
 namespace BulletTime
 {
@@ -50,28 +53,32 @@ namespace BulletTime
                 return;
             }
 
-            if (BulletTime.KeyBulletTime.Value.IsDown())
+            if (IsKeyPressed(BulletTime.KeyBulletTime.Value))
             {
-                //if key is down and bullet time is not active, activate it
-                if (!firstTimeTriggered && !startBulletTime)
-                {
-                    StartBulletTime();
-                    setRecoil(player);
-                }
-                else if (firstTimeTriggered && startBulletTime)
-                {
-                    StopBulletTime();
-                    setRecoil(player);
-                }
+                ToggleBulletTime();
             }
 
-            //in update loop, if we are in bullet time and the firsttimetriggered is true, then do stuff
             CheckStamina();
         }
 
+        private void ToggleBulletTime()
+        {
+            try
+            {
+                if (!firstTimeTriggered)
+                {
+                    StartBulletTime();
+                }
+                else if (startBulletTime)
+                {
+                    StopBulletTime();
+                }
+                SetRecoil(player);
+            }
+            catch (Exception ex) { }
+        }
         private void StartBulletTime()
         {
-            //Logger.LogInfo("Starting Bullet Time");
             startBulletTime = true;
             Singleton<GUISounds>.Instance.PlaySound(BulletTime.EnterBulletAudioClip);
             Time.timeScale = BulletTime.BulletTimeScale.Value;
@@ -80,7 +87,6 @@ namespace BulletTime
 
         private void StopBulletTime()
         {
-            //Logger.LogInfo("Ending Bullet Time Early by Keypress");
             startBulletTime = false;
             Singleton<GUISounds>.Instance.PlaySound(BulletTime.ExitBulletAudioClip);
             Time.timeScale = 1.0f;
@@ -89,45 +95,33 @@ namespace BulletTime
 
         private void CheckStamina()
         {
-            if (startBulletTime)
+            if (!startBulletTime) return;
+
+            staminaBurn = BulletTime.StaminaBurnRatePerSecond.Value * Time.unscaledDeltaTime;
+            player.Physical.Stamina.Current = Mathf.Max(0, player.Physical.Stamina.Current - staminaBurn);
+
+            if (player.Physical.Stamina.Current == 0)
             {
-                //determine rate at which stamina burns based on BulletTime.BulletTimeStaminaBurnRatePerSecond.Value and Time.deltaTime
-                staminaBurn = BulletTime.StaminaBurnRatePerSecond.Value * Time.unscaledDeltaTime;
-                
-                //update stamina unless the staminaBurn will cause it to be less than 0, then just set to 0
-                if ((player.Physical.Stamina.Current - staminaBurn) <= 0f)
-                {
-                    player.Physical.Stamina.Current = 0f;
-                }
-                else
-                {
-                    player.Physical.Stamina.Current -= staminaBurn;
-                }
-
-
-                if (player.Physical.Stamina.Current == 0)
-                {
-                    //stop bullettime
-                    StopBulletTime();
-                    setRecoil(player);
-                }
+                StopBulletTime();
+                SetRecoil(player);
             }
         }
 
-        public void setRecoil(Player player)
+        public void SetRecoil(Player player)
         {
-            try
-            {
-                //Logger.LogInfo("Original FixedUpdate Time: " + Time.deltaTime);
-                player.ProceduralWeaponAnimation.HandsContainer.Recoil.FixedUpdate(Time.deltaTime);
+            //Logger.LogInfo("Original FixedUpdate Time: " + Time.deltaTime);
+            player.ProceduralWeaponAnimation.HandsContainer.Recoil.FixedUpdate(Time.deltaTime);
 
-                //Logger.LogInfo("Set the FixedUpdate of Recoil to: " + Time.deltaTime);
-            }
-            catch
-            {
-            }
+            //Logger.LogInfo("Set the FixedUpdate of Recoil to: " + Time.deltaTime);
+
         }
+        
+        bool IsKeyPressed(KeyboardShortcut key)
+        {
+            if (!UnityInput.Current.GetKeyDown(key.MainKey)) return false;
 
+            return key.Modifiers.All(modifier => UnityInput.Current.GetKey(modifier));
+        }
 
     }
 }

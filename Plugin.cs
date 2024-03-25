@@ -10,7 +10,7 @@ using UnityEngine.Networking;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.6.2")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.7.0")]
 
     public class BulletTime : BaseUnityPlugin
     {
@@ -90,6 +90,7 @@ namespace BulletTime
         }
 
     }
+
 
     internal class NewGamePatch : ModulePatch
     {
