@@ -1,13 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
-using BepInEx.Configuration;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using Comfort.Common;
 using EFT;
 using EFT.UI;
 using UnityEngine;
-using System.Linq;
 
 namespace BulletTime
 {
@@ -73,7 +73,8 @@ namespace BulletTime
                 {
                     StopBulletTime();
                 }
-                SetRecoil(player);
+                //SetRecoil(player);
+
             }
             catch (Exception ex) { }
         }
@@ -103,19 +104,19 @@ namespace BulletTime
             if (player.Physical.Stamina.Current == 0)
             {
                 StopBulletTime();
-                SetRecoil(player);
+                //SetRecoil(player);
             }
         }
 
-        public void SetRecoil(Player player)
+        /*public void SetRecoil(Player player)
         {
             //Logger.LogInfo("Original FixedUpdate Time: " + Time.deltaTime);
             player.ProceduralWeaponAnimation.HandsContainer.Recoil.FixedUpdate(Time.deltaTime);
 
             //Logger.LogInfo("Set the FixedUpdate of Recoil to: " + Time.deltaTime);
 
-        }
-        
+        }*/
+
         bool IsKeyPressed(KeyboardShortcut key)
         {
             if (!UnityInput.Current.GetKeyDown(key.MainKey)) return false;
