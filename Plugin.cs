@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading.Tasks;
-using Aki.Reflection.Patching;
+using SPT.Reflection.Patching;
 using BepInEx;
 using BepInEx.Configuration;
 using EFT;
@@ -10,7 +10,7 @@ using UnityEngine.Networking;
 
 namespace BulletTime
 {
-    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.7.0")]
+    [BepInPlugin("com.dvize.BulletTime", "dvize.BulletTime", "1.8.0")]
 
     public class BulletTime : BaseUnityPlugin
     {

@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>dvize.BulletTime</RootNamespace>
     <AssemblyName>dvize.BulletTime</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -46,14 +47,6 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>F:\SPT-AKI-DEV\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
-    <Reference Include="Aki.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Aki.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Aki.Reflection, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Aki.Reflection.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
@@ -69,6 +62,12 @@
     <Reference Include="Comfort.Unity, Version=1.0.0.4, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>F:\SPT-AKI-DEV\EscapeFromTarkov_Data\Managed\Comfort.Unity.dll</HintPath>
+    </Reference>
+    <Reference Include="spt-common">
+      <HintPath>F:\SPT-AKI-DEV\BepInEx\plugins\spt\spt-common.dll</HintPath>
+    </Reference>
+    <Reference Include="spt-reflection">
+      <HintPath>F:\SPT-AKI-DEV\BepInEx\plugins\spt\spt-reflection.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -120,12 +119,15 @@
   <PropertyGroup>
     <PostBuildEvent>copy "$(TargetPath)" "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BulletTime\$(TargetName).dll"
 
-if $(ConfigurationName) == Debug (
+if "$(ConfigurationName)" == "Debug" (
     copy "$(TargetDir)$(TargetName).pdb" "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BulletTime\$(TargetName).pdb"
 ) else (
     del "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BulletTime\$(TargetName).pdb"
 )
-</PostBuildEvent>
+
+if "$(ConfigurationName)" == "Release" (
+    powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File "$(ProjectDir)PackageMods.ps1" -ConfigurationName "$(ConfigurationName)" -TargetPath "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BulletTime\$(TargetName).dll" -TargetName "$(TargetName)" -TargetDir "F:\SPT-AKI-DEV\BepInEx\plugins\dvize.BulletTime"
+)</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>

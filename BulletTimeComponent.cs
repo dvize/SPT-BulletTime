@@ -22,6 +22,7 @@ namespace BulletTime
         {
             get; private set;
         }
+
         private BulletTimeComponent()
         {
             if (Logger == null)
@@ -29,6 +30,7 @@ namespace BulletTime
                 Logger = BepInEx.Logging.Logger.CreateLogSource(nameof(BulletTimeComponent));
             }
         }
+
         internal static void Enable()
         {
             if (Singleton<IBotGame>.Instantiated)
@@ -39,6 +41,7 @@ namespace BulletTime
                 Logger.LogDebug("BulletTimeComponent enabled");
             }
         }
+
         private void Start()
         {
             player = Singleton<GameWorld>.Instance.MainPlayer;
@@ -46,6 +49,7 @@ namespace BulletTime
             startBulletTime = false;
             firstTimeTriggered = false;
         }
+
         public async Task Update()
         {
             if (!BulletTime.PluginEnabled.Value)
@@ -73,16 +77,20 @@ namespace BulletTime
                 {
                     StopBulletTime();
                 }
-                //SetRecoil(player);
-
             }
-            catch (Exception ex) { }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error in ToggleBulletTime: {ex}");
+            }
         }
+
+
         private void StartBulletTime()
         {
             startBulletTime = true;
             Singleton<GUISounds>.Instance.PlaySound(BulletTime.EnterBulletAudioClip);
             Time.timeScale = BulletTime.BulletTimeScale.Value;
+
             firstTimeTriggered = true;
         }
 
@@ -91,6 +99,7 @@ namespace BulletTime
             startBulletTime = false;
             Singleton<GUISounds>.Instance.PlaySound(BulletTime.ExitBulletAudioClip);
             Time.timeScale = 1.0f;
+
             firstTimeTriggered = false;
         }
 
@@ -104,18 +113,8 @@ namespace BulletTime
             if (player.Physical.Stamina.Current == 0)
             {
                 StopBulletTime();
-                //SetRecoil(player);
             }
         }
-
-        /*public void SetRecoil(Player player)
-        {
-            //Logger.LogInfo("Original FixedUpdate Time: " + Time.deltaTime);
-            player.ProceduralWeaponAnimation.HandsContainer.Recoil.FixedUpdate(Time.deltaTime);
-
-            //Logger.LogInfo("Set the FixedUpdate of Recoil to: " + Time.deltaTime);
-
-        }*/
 
         bool IsKeyPressed(KeyboardShortcut key)
         {
@@ -123,7 +122,5 @@ namespace BulletTime
 
             return key.Modifiers.All(modifier => UnityInput.Current.GetKey(modifier));
         }
-
     }
 }
-
